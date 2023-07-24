@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"regexp"
 )
 
 type FileInfo struct {
@@ -63,6 +64,13 @@ func getDir(info *UriInfo) (*FSInfo, error) {
 	}
 	var infos []*FileInfo
 	for _, entry := range entries {
+		hide, err := regexp.Compile("^[.].+$")
+		if err != nil {
+			return nil, err
+		}
+		if hide.Match([]byte(entry.Name())) {
+			continue
+		}
 		infos = append(infos, &FileInfo{
 			Folder: entry.IsDir(),
 			Path:   info.Uri + entry.Name(),
