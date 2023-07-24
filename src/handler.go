@@ -37,14 +37,18 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	badFile, err := regexp.Compile("^read .+: is a directory$")
+	badDirectory, err := regexp.Compile("^open .+: not a directory$")
 	if err != nil {
 		internalError(err, w)
 		return
 	}
 	infos, err := getInfos(info)
 	if err != nil {
-		if badFile.Match([]byte(err.Error())) {
+		br := []byte(err.Error())
+		if badFile.Match(br) {
 			badRequest("The file requested is a folder", w)
+		} else if badDirectory.Match(br) {
+			badRequest("The folder requested is a file", w)
 		} else {
 			internalError(err, w)
 		}
