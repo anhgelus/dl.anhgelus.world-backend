@@ -4,8 +4,6 @@ WORKDIR /app
 
 COPY . .
 
-RUN mkdir /data
-
 RUN go build -o app .
 
 CMD ./app

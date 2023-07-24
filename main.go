@@ -5,10 +5,16 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
 func main() {
+	err := os.Mkdir("/data", 0777)
+	if err != nil && !os.IsExist(err) {
+		panic(err)
+	}
+
 	r := mux.NewRouter()
 	r.Methods(http.MethodGet).
 		PathPrefix("/").
@@ -17,12 +23,11 @@ func main() {
 		HandlerFunc(src.HandleNotAllowed)
 
 	srv := &http.Server{
-		Handler: r,
-		Addr:    "127.0.0.1:8000",
-		// Good practice: enforce timeouts for servers you create!
+		Handler:      r,
+		Addr:         ":80",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-
+	log.Default().Println("Starting...")
 	log.Fatal(srv.ListenAndServe())
 }

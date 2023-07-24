@@ -1,15 +1,22 @@
 package src
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 )
 
 type UriInfo struct {
-	Folder bool `json:"folder"`
-	File   bool `json:"file"`
-	Hidden bool `json:"hidden"`
-	Valid  bool `json:"valid"`
+	Folder bool   `json:"folder"`
+	File   bool   `json:"file"`
+	Hidden bool   `json:"hidden"`
+	Valid  bool   `json:"valid"`
+	Uri    string `json:"uri"`
+}
+
+func (info *UriInfo) genUri() string {
+	return fmt.Sprintf("/data%s", info.Uri)
 }
 
 type Response struct {
@@ -19,6 +26,7 @@ type Response struct {
 }
 
 func Handle(w http.ResponseWriter, r *http.Request) {
+	log.Default().Printf("Called %s", r.RequestURI)
 	info, err := parseUri(r.RequestURI)
 	if err != nil {
 		internalError(err, w)
@@ -28,7 +36,32 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		badRequest("Invalid uri", w)
 		return
 	}
-	respondWithData(info, "test", w)
+	badFile, err := regexp.Compile("^read .+: is a directory$")
+	if err != nil {
+		internalError(err, w)
+		return
+	}
+	infos, err := getInfos(info)
+	if err != nil {
+		if badFile.Match([]byte(err.Error())) {
+			badRequest("The file requested is a folder", w)
+		} else {
+			internalError(err, w)
+		}
+		return
+	}
+	if !infos.valid {
+		notFound("Not found", w)
+		return
+	}
+	if infos.Folder {
+		respondWithData(infos.Files, "Fetched", w)
+		return
+	}
+	_, err = w.Write(infos.Content)
+	if err != nil {
+		internalError(err, w)
+	}
 }
 
 func HandleNotAllowed(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +87,7 @@ func parseUri(uri string) (*UriInfo, error) {
 		info := UriInfo{Valid: false}
 		return &info, nil
 	}
-	info := UriInfo{false, true, false, true}
+	info := UriInfo{false, true, false, true, uri}
 	if hide.Match(bUri) {
 		info.Hidden = true
 	}

@@ -2,10 +2,12 @@ package src
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
 func internalError(err error, w http.ResponseWriter) {
+	log.Default().Println(err)
 	w.WriteHeader(http.StatusInternalServerError)
 	resp := Response{
 		Status:  http.StatusInternalServerError,
@@ -13,7 +15,7 @@ func internalError(err error, w http.ResponseWriter) {
 		Data:    nil,
 	}
 	val, _ := json.Marshal(resp)
-	w.Write(val)
+	_, _ = w.Write(val)
 }
 
 func respondWithData(data interface{}, message string, w http.ResponseWriter) {
@@ -31,6 +33,15 @@ func badRequest(message string, w http.ResponseWriter) {
 		Message: message,
 	}
 	w.WriteHeader(http.StatusBadRequest)
+	write(&resp, w)
+}
+
+func notFound(message string, w http.ResponseWriter) {
+	resp := Response{
+		Status:  http.StatusNotFound,
+		Message: message,
+	}
+	w.WriteHeader(http.StatusNotFound)
 	write(&resp, w)
 }
 
